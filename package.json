@@ -1,6 +1,6 @@
 {
-  "name": "simple-ai-agent-toolkit",
-  "version": "0.1.0",
+  "name": "obru-ai",
+  "version": "0.1.1",
   "description": "TypeScript toolkit for creating AI agents with custom tools and workflows",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

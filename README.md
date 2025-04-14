@@ -1,4 +1,4 @@
-# AI Agent Toolkit
+# obru-ai
 
 A TypeScript library for creating AI agents with custom tools and workflows. This toolkit makes it easy to build AI-powered applications that can execute tasks, follow workflows, and integrate with external systems.
 
@@ -13,7 +13,7 @@ A TypeScript library for creating AI agents with custom tools and workflows. Thi
 ## Installation
 
 ```bash
-npm install ai-agent-toolkit
+npm install obru-ai
 ```
 
 ## Quick Start
@@ -21,7 +21,7 @@ npm install ai-agent-toolkit
 ### Basic Usage
 
 ```typescript
-import { Agent } from "ai-agent-toolkit";
+import { Agent } from "obru-ai";
 
 // Create an agent
 const agent = new Agent({
@@ -38,7 +38,7 @@ console.log(response);
 ### With Custom Tools
 
 ```typescript
-import { Agent } from "ai-agent-toolkit";
+import { Agent } from "obru-ai";
 
 const agent = new Agent({
   basePrompt: "You are a helpful AI assistant.",
@@ -67,7 +67,7 @@ console.log(response);
 ### With Workflows
 
 ```typescript
-import { Agent } from "ai-agent-toolkit";
+import { Agent } from "obru-ai";
 
 const agent = new Agent({
   basePrompt: "You are a helpful AI assistant.",
@@ -98,7 +98,7 @@ console.log(response);
 
 ```typescript
 import express from "express";
-import { Agent } from "ai-agent-toolkit";
+import { Agent } from "obru-ai";
 
 const app = express();
 app.use(express.json());
@@ -174,8 +174,9 @@ interface WorkflowStep {
 ## Advanced Configuration
 
 ```typescript
-import { Agent } from 'ai-agent-toolkit';
+import { Agent } from 'obru-ai';
 
+// Using OpenAI (default)
 const agent = new Agent({
   basePrompt: "You are a helpful AI assistant.",
   model: "gpt-4",
@@ -185,7 +186,21 @@ const agent = new Agent({
   tools: [...],
   workflowSteps: [...]
 });
+
+// Using OpenRouter
+const routerAgent = new Agent({
+  basePrompt: "You are a helpful AI assistant.",
+  model: "anthropic/claude-2", // OpenRouter model path
+  apiKey: process.env.OPENROUTER_API_KEY,
+  temperature: 0.5,
+  maxTokens: 2000,
+  provider: "openrouter", // Specify OpenRouter as the provider
+  apiBaseUrl: "https://openrouter.ai/api/v1", // Optional: override the default URL
+  tools: [...], // Tool/function calling is now supported on OpenRouter!
+});
 ```
+
+OpenRouter now supports tool/function calling (see [OpenRouter Tool Calling Docs](https://openrouter.ai/docs/features/tool-calling)). You can use the same tools array as with OpenAI.
 
 ## Development
 

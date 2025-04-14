@@ -8,8 +8,8 @@ dotenv.config();
 const app = express();
 app.use(express.json());
 
-// Create the AI agent
-const agent = new Agent({
+// Create an OpenAI-based agent for tool-enabled features
+const openaiAgent = new Agent({
   basePrompt:
     "You are a helpful AI assistant specialized in customer support for an e-commerce store.",
   model: "gpt-4",
@@ -88,10 +88,22 @@ const agent = new Agent({
   ],
 });
 
+// Create an OpenRouter-based agent for general queries
+const routerAgent = new Agent({
+  basePrompt:
+    "You are a helpful AI assistant specialized in customer support for an e-commerce store.",
+  model: "anthropic/claude-2",
+  apiKey: process.env.OPENROUTER_API_KEY!,
+  provider: "openrouter",
+  temperature: 0.7,
+  maxTokens: 1000,
+});
+
 // Create API endpoints
 app.post("/chat", async (req, res) => {
   try {
-    const { message } = req.body;
+    const { message, useOpenRouter } = req.body;
+    const agent = useOpenRouter ? routerAgent : openaiAgent;
     const response = await agent.processInput(message);
     res.json({ response });
   } catch (error) {
@@ -102,7 +114,8 @@ app.post("/chat", async (req, res) => {
 app.post("/workflow", async (req, res) => {
   try {
     const { message, workflow } = req.body;
-    const response = await agent.executeWorkflow(workflow, message);
+    // Always use OpenAI agent for workflows since they may require tools
+    const response = await openaiAgent.executeWorkflow(workflow, message);
     res.json({ response });
   } catch (error) {
     res.status(500).json({ error: (error as Error).message });

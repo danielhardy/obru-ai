@@ -45,6 +45,8 @@ export interface ModelServiceConfig {
   model: string;
   temperature: number;
   maxTokens: number;
+  provider?: "openai" | "openrouter";
+  apiBaseUrl?: string;
 }
 
 // Forward reference for TypeScript

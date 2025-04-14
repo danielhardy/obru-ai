@@ -5,9 +5,15 @@ import { Message, ModelResponse, ModelServiceConfig } from "./types";
 export class ModelService {
   private config: ModelServiceConfig;
   private tools: any[] = [];
+  private readonly baseUrl: string;
 
   constructor(config: ModelServiceConfig) {
     this.config = config;
+    this.baseUrl =
+      config.apiBaseUrl ||
+      (config.provider === "openrouter"
+        ? "https://openrouter.ai/api/v1"
+        : "https://api.openai.com/v1");
   }
 
   public setTools(tools: any[]): void {
@@ -23,36 +29,54 @@ export class ModelService {
         max_tokens: this.config.maxTokens,
       };
 
-      // Only include tools if we have any registered
+      // Include tools if any are registered (now for both OpenAI and OpenRouter)
       if (this.tools.length > 0) {
         requestBody.tools = this.tools;
         requestBody.tool_choice = "auto";
       }
 
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+
+      // Set appropriate authorization header based on provider
+      if (this.config.provider === "openrouter") {
+        headers["HTTP-Referer"] = "https://github.com/simple-ai-agent-toolkit"; // Replace with your actual site
+        headers["Authorization"] = `Bearer ${this.config.apiKey}`;
+      } else {
+        headers["Authorization"] = `Bearer ${this.config.apiKey}`;
+      }
+
       const response = await axios.post(
-        "https://api.openai.com/v1/chat/completions",
+        `${this.baseUrl}/chat/completions`,
         requestBody,
-        {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${this.config.apiKey}`,
-          },
-        }
+        { headers }
       );
 
       const content = response.data.choices[0].message.content || "";
+      // Parse tool calls for both OpenAI and OpenRouter
       const toolCalls: { name: string; arguments: Record<string, any> }[] =
         response.data.choices[0].message.tool_calls?.map(
           (call: { function: { name: string; arguments: string } }) => ({
             name: call.function.name,
-            arguments: JSON.parse(call.function.arguments),
+            arguments:
+              typeof call.function.arguments === "string"
+                ? JSON.parse(call.function.arguments)
+                : call.function.arguments,
           })
         ) || [];
 
       return { content, toolCalls };
     } catch (error) {
-      console.error("Error calling OpenAI API:", error);
-      throw new Error("Failed to generate response from the model");
+      console.error(
+        `Error calling ${this.config.provider || "OpenAI"} API:`,
+        error
+      );
+      throw new Error(
+        `Failed to generate response from the model: ${
+          (error as Error).message
+        }`
+      );
     }
   }
 

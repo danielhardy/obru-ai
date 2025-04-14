@@ -13,7 +13,7 @@ A TypeScript library for creating AI agents with custom tools and workflows. Thi
 ## Installation
 
 ```bash
-npm install obru-ai
+npm install github:danielhardy/obru-ai
 ```
 
 ## Quick Start

@@ -1,5 +1,11 @@
 // src/agent.ts
-import { AgentConfig, Message, ModelResponse } from "./types";
+import {
+  AgentConfig,
+  Message,
+  ModelResponse,
+  ParsedToolCall,
+  AssistantToolCall,
+} from "./types";
 import { ModelService } from "./model-service";
 import { PromptManager } from "./prompt-manager";
 import { ToolManager } from "./tool-manager";
@@ -58,9 +64,13 @@ export class Agent {
     // Get response from LLM
     const response = await this.modelService.generateResponse(this.messages);
 
-    // If the response contains tool calls, execute them
-    if (response.toolCalls && response.toolCalls.length > 0) {
-      await this.handleToolCalls(response);
+    // If the response contains parsed tool calls, execute them
+    if (response.parsedToolCalls && response.parsedToolCalls.length > 0) {
+      // Pass both raw (for history) and parsed (for execution) tool calls
+      await this.handleToolCalls(
+        response.rawToolCalls || [],
+        response.parsedToolCalls
+      );
 
       // Get follow-up response after tool execution
       const followUpResponse = await this.modelService.generateResponse(
@@ -70,42 +80,53 @@ export class Agent {
         role: "assistant",
         content: followUpResponse.content,
       });
-      return followUpResponse.content;
+      // Ensure content is returned, even if null (should be string according to Promise type)
+      return followUpResponse.content || "";
     }
 
-    // Add assistant response to messages
-    this.messages.push({ role: "assistant", content: response.content });
-    return response.content;
+    // Add assistant response to messages (ensure content is not null)
+    this.messages.push({ role: "assistant", content: response.content || "" });
+    return response.content || "";
   }
 
-  private async handleToolCalls(response: ModelResponse): Promise<void> {
-    // First, add the assistant message with tool calls
+  private async handleToolCalls(
+    rawToolCalls: AssistantToolCall[],
+    parsedToolCalls: ParsedToolCall[]
+  ): Promise<void> {
+    // First, add the assistant message containing the raw tool calls to the history
+    // Content should be null or empty string when tool_calls are present
     this.messages.push({
       role: "assistant",
-      content: response.content || "",
-      // Note: In a full implementation, you'd include the tool_calls data here
+      content: null, // Per OpenAI spec, content is often null when tool_calls are present
+      tool_calls: rawToolCalls,
     });
 
     // Execute each tool call
-    for (const toolCall of response.toolCalls || []) {
+    // Execute each parsed tool call
+    for (const toolCall of parsedToolCalls) {
       try {
         const toolResponse = await this.toolManager.executeTool(
           toolCall.name,
           toolCall.arguments
         );
 
-        // Add tool response to messages
+        // Add tool response message with the corresponding tool_call_id
         this.messages.push({
           role: "tool",
-          name: toolCall.name,
-          content: toolResponse,
+          tool_call_id: toolCall.id, // Include the ID of the call being responded to
+          name: toolCall.name, // Function name is helpful but optional in tool role message
+          content: toolResponse, // The result of the tool execution
         });
       } catch (error) {
         console.error(`Error executing tool ${toolCall.name}:`, error);
+        // Add tool error message with the corresponding tool_call_id
         this.messages.push({
           role: "tool",
+          tool_call_id: toolCall.id, // Include the ID of the call that failed
           name: toolCall.name,
-          content: `Error: ${(error as Error).message}`,
+          content: `Error executing tool ${toolCall.name}: ${
+            (error as Error).message
+          }`,
         });
       }
     }

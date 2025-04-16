@@ -1,6 +1,12 @@
 // src/model-service.ts
 import axios from "axios";
-import { Message, ModelResponse, ModelServiceConfig } from "./types";
+import {
+  Message,
+  ModelResponse,
+  ModelServiceConfig,
+  ParsedToolCall,
+  AssistantToolCall,
+} from "./types";
 
 export class ModelService {
   private config: ModelServiceConfig;
@@ -54,19 +60,26 @@ export class ModelService {
       );
 
       const content = response.data.choices[0].message.content || "";
-      // Parse tool calls for both OpenAI and OpenRouter
-      const toolCalls: { name: string; arguments: Record<string, any> }[] =
-        response.data.choices[0].message.tool_calls?.map(
-          (call: { function: { name: string; arguments: string } }) => ({
-            name: call.function.name,
-            arguments:
-              typeof call.function.arguments === "string"
-                ? JSON.parse(call.function.arguments)
-                : call.function.arguments,
-          })
-        ) || [];
+      // Parse tool calls for both OpenAI and OpenRouter, capturing the ID
+      const rawToolCalls: AssistantToolCall[] | undefined =
+        response.data.choices[0].message.tool_calls;
+      const parsedToolCalls: ParsedToolCall[] =
+        rawToolCalls?.map((call: AssistantToolCall) => ({
+          id: call.id, // Capture the tool call ID
+          name: call.function.name,
+          arguments:
+            typeof call.function.arguments === "string"
+              ? JSON.parse(call.function.arguments) // Parse arguments if they are a string
+              : call.function.arguments, // Otherwise, assume they are already an object (less common)
+        })) || [];
 
-      return { content, toolCalls };
+      // Return content and the *parsed* tool calls with IDs
+      // Return content, raw tool calls (for history), and parsed tool calls (for execution)
+      return {
+        content,
+        rawToolCalls: rawToolCalls,
+        parsedToolCalls: parsedToolCalls,
+      };
     } catch (error) {
       console.error(
         `Error calling ${this.config.provider || "OpenAI"} API:`,

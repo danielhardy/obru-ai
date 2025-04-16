@@ -115,7 +115,7 @@ export class Agent {
           role: "tool",
           tool_call_id: toolCall.id, // Include the ID of the call being responded to
           name: toolCall.name, // Function name is helpful but optional in tool role message
-          content: toolResponse, // The result of the tool execution
+          content: toolResponse ?? "", // Force fallback to empty string if null/undefined
         });
       } catch (error) {
         console.error(`Error executing tool ${toolCall.name}:`, error);

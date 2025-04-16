@@ -1,6 +1,6 @@
 // examples/express-app.ts
 import express from "express";
-import { Agent } from "ai-agent-toolkit";
+import { Agent } from "obru-ai";
 import dotenv from "dotenv";
 
 dotenv.config();

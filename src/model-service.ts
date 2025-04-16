@@ -41,7 +41,7 @@ export class ModelService {
 
       // Set appropriate authorization header based on provider
       if (this.config.provider === "openrouter") {
-        headers["HTTP-Referer"] = "https://github.com/simple-ai-agent-toolkit"; // Replace with your actual site
+        headers["HTTP-Referer"] = "https://github.com/danielhardy/obru-ai"; // Replace with your actual site
         headers["Authorization"] = `Bearer ${this.config.apiKey}`;
       } else {
         headers["Authorization"] = `Bearer ${this.config.apiKey}`;

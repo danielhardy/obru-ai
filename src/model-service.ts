@@ -1,5 +1,4 @@
 // src/model-service.ts
-import axios from "axios";
 import {
   Message,
   ModelResponse,
@@ -53,16 +52,25 @@ export class ModelService {
         headers["Authorization"] = `Bearer ${this.config.apiKey}`;
       }
 
-      const response = await axios.post(
-        `${this.baseUrl}/chat/completions`,
-        requestBody,
-        { headers }
-      );
+      const response = await fetch(`${this.baseUrl}/chat/completions`, {
+        method: "POST",
+        headers: headers,
+        body: JSON.stringify(requestBody),
+      });
 
-      const content = response.data.choices[0].message.content || "";
+      if (!response.ok) {
+        const errorBody = await response.text();
+        throw new Error(
+          `API request failed: ${response.status} ${response.statusText} - ${errorBody}`
+        );
+      }
+
+      const data = await response.json();
+
+      const content = data.choices[0].message.content || "";
       // Parse tool calls for both OpenAI and OpenRouter, capturing the ID
       const rawToolCalls: AssistantToolCall[] | undefined =
-        response.data.choices[0].message.tool_calls;
+        data.choices[0].message.tool_calls;
       const parsedToolCalls: ParsedToolCall[] =
         rawToolCalls?.map((call: AssistantToolCall) => ({
           id: call.id, // Capture the tool call ID

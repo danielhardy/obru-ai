@@ -10,6 +10,7 @@ import { ModelService } from "./model-service";
 import { PromptManager } from "./prompt-manager";
 import { ToolManager } from "./tool-manager";
 import { WorkflowManager } from "./workflow-manager";
+import { safeContent } from "./utils";
 
 export class Agent {
   private config: AgentConfig;
@@ -59,7 +60,7 @@ export class Agent {
 
   public async processInput(input: string): Promise<string> {
     // Add user message
-    this.messages.push({ role: "user", content: input });
+    this.messages.push({ role: "user", content: safeContent(input) });
 
     // Get response from LLM
     const response = await this.modelService.generateResponse(this.messages);
@@ -78,58 +79,59 @@ export class Agent {
       );
       this.messages.push({
         role: "assistant",
-        content: followUpResponse.content,
+        content: safeContent(followUpResponse.content),
       });
-      // Ensure content is returned, even if null (should be string according to Promise type)
-      return followUpResponse.content || "";
+
+      return safeContent(followUpResponse.content);
     }
 
-    // Add assistant response to messages (ensure content is not null)
-    this.messages.push({ role: "assistant", content: response.content || "" });
-    return response.content || "";
+    // Add assistant response to messages
+    this.messages.push({
+      role: "assistant",
+      content: safeContent(response.content),
+    });
+    return safeContent(response.content);
   }
 
   private async handleToolCalls(
     rawToolCalls: AssistantToolCall[],
     parsedToolCalls: ParsedToolCall[]
   ): Promise<void> {
-    // First, add the assistant message containing the raw tool calls to the history
-    // Content should be null or empty string when tool_calls are present
+    // Add the assistant message containing the raw tool calls to history
     this.messages.push({
       role: "assistant",
-      content: null, // Per OpenAI spec, content is often null when tool_calls are present
+      content: null, // per OpenAI spec when tool_calls are present
       tool_calls: rawToolCalls,
     });
 
-    // Execute each tool call
-    // Execute each parsed tool call
-    for (const toolCall of parsedToolCalls) {
-      try {
-        const toolResponse = await this.toolManager.executeTool(
-          toolCall.name,
-          toolCall.arguments
-        );
+    // Execute all parsed tool calls **in parallel**
+    await Promise.all(
+      parsedToolCalls.map(async (toolCall) => {
+        try {
+          const toolResponse = await this.toolManager.executeTool(
+            toolCall.name,
+            toolCall.arguments
+          );
 
-        // Add tool response message with the corresponding tool_call_id
-        this.messages.push({
-          role: "tool",
-          tool_call_id: toolCall.id, // Include the ID of the call being responded to
-          name: toolCall.name, // Function name is helpful but optional in tool role message
-          content: toolResponse ?? "", // Force fallback to empty string if null/undefined
-        });
-      } catch (error) {
-        console.error(`Error executing tool ${toolCall.name}:`, error);
-        // Add tool error message with the corresponding tool_call_id
-        this.messages.push({
-          role: "tool",
-          tool_call_id: toolCall.id, // Include the ID of the call that failed
-          name: toolCall.name,
-          content: `Error executing tool ${toolCall.name}: ${
-            (error as Error).message
-          }`,
-        });
-      }
-    }
+          this.messages.push({
+            role: "tool",
+            tool_call_id: toolCall.id,
+            name: toolCall.name,
+            content: safeContent(toolResponse),
+          });
+        } catch (error) {
+          console.error(`Error executing tool ${toolCall.name}:`, error);
+          this.messages.push({
+            role: "tool",
+            tool_call_id: toolCall.id,
+            name: toolCall.name,
+            content: `Error executing tool ${toolCall.name}: ${
+              (error as Error).message
+            }`,
+          });
+        }
+      })
+    );
   }
 
   public async executeWorkflow(

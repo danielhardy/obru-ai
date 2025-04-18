@@ -15,7 +15,7 @@ export interface AssistantToolCall {
   type: "function";
   function: {
     name: string;
-    arguments: string; // Arguments from API are stringified JSON
+    arguments: string | Record<string, any>; // Arguments from API can arrive as either a string or a parsed object
   };
 }
 

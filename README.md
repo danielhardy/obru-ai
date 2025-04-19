@@ -1,4 +1,5 @@
-# obru-ai
+````markdown
+# obru‑ai
 
 A TypeScript library for creating AI agents with custom tools and workflows. This toolkit makes it easy to build AI‑powered applications that can execute tasks, follow workflows, and integrate with external systems.
 
@@ -8,7 +9,8 @@ A TypeScript library for creating AI agents with custom tools and workflows. Thi
 - 🛠️ **Tool Integration**: Define and execute custom tools that your agent can use
 - 🔄 **Workflow System**: Create multi‑step workflows with reusable components
 - 🔌 **Express.js Integration**: Ready to use with web applications
-- 📝 **Conversation History**: Full conversation management and context tracking
+- 📋 **Lifecycle Hooks**: Inspect or mutate prompts & responses without forking
+- 🪵 **Injectable Logger**: Plug in Winston, Pino, or a silent no‑op logger
 
 ## Installation
 
@@ -17,6 +19,7 @@ A TypeScript library for creating AI agents with custom tools and workflows. Thi
 ```bash
 npm install github:danielhardy/obru-ai
 ```
+````
 
 ## Quick Start
 
@@ -29,13 +32,14 @@ import { Agent } from "obru-ai";
 const agent = new Agent({
   basePrompt: "You are a helpful AI assistant.",
   model: "gpt-4",
-  apiKey: process.env.OPENAI_API_KEY,
+  apiKey: process.env.OPENAI_API_KEY!,
 });
 
-// Process user input
 const response = await agent.processInput("Hello, can you help me?");
 console.log(response);
 ```
+
+> Need structured logging or metrics? Pass `logger` and `hooks` in the config—see _Advanced Configuration_.
 
 ### With Custom Tools
 
@@ -45,19 +49,13 @@ import { Agent } from "obru-ai";
 const agent = new Agent({
   basePrompt: "You are a helpful AI assistant.",
   model: "gpt-4",
-  apiKey: process.env.OPENAI_API_KEY,
+  apiKey: process.env.OPENAI_API_KEY!,
   tools: [
     {
       name: "getCurrentTime",
       description: "Gets the current time",
-      parameters: {
-        type: "object",
-        properties: {},
-        required: [],
-      },
-      execute: async () => {
-        return new Date().toISOString();
-      },
+      parameters: { type: "object", properties: {} },
+      execute: async () => new Date().toISOString(),
     },
   ],
 });
@@ -74,14 +72,14 @@ import { Agent } from "obru-ai";
 const agent = new Agent({
   basePrompt: "You are a helpful AI assistant.",
   model: "gpt-4",
-  apiKey: process.env.OPENAI_API_KEY,
+  apiKey: process.env.OPENAI_API_KEY!,
   workflowSteps: [
     {
       name: "analyzeAndRespond",
       description: "Analyze input and provide a thoughtful response",
       execute: async (agent, input) => {
         const analysis = await agent.processInput(`Analyze this: ${input}`);
-        return await agent.processInput(
+        return agent.processInput(
           `Respond based on this analysis: ${analysis}`
         );
       },
@@ -108,16 +106,16 @@ app.use(express.json());
 const agent = new Agent({
   basePrompt: "You are a customer support AI.",
   model: "gpt-4",
-  apiKey: process.env.OPENAI_API_KEY,
+  apiKey: process.env.OPENAI_API_KEY!,
 });
 
 app.post("/chat", async (req, res) => {
   try {
     const { message } = req.body;
-    const response = await agent.processInput(message);
-    res.json({ response });
-  } catch (error) {
-    res.status(500).json({ error: (error as Error).message });
+    const reply = await agent.processInput(message);
+    res.json({ reply });
+  } catch (err) {
+    res.status(500).json({ error: (err as Error).message });
   }
 });
 
@@ -136,6 +134,49 @@ The core class for creating and managing AI agents.
 
 ```typescript
 new Agent(config: AgentConfig)
+```
+
+#### AgentConfig
+
+```typescript
+interface AgentConfig {
+  apiKey: string;
+  model: string;
+  basePrompt: string;
+  tools?: Tool[];
+  workflowSteps?: WorkflowStep[];
+  /**
+   * Replace console with any logger that implements
+   * `error`, and optionally `info`, `warn`, `debug`.
+   *
+   * Examples: `console`, `winston.createLogger()`, `pino()`
+   */
+  logger?: Logger;
+  /**
+   * Lifecycle hooks that fire around each LLM request.
+   */
+  hooks?: {
+    /** Called just *before* modelService.generateResponse */
+    beforePrompt?(messages: Message[]): void;
+    /** Called immediately *after* the raw ModelResponse returns */
+    afterResponse?(response: ModelResponse): void;
+  };
+  /** Controls model randomness (0–1). Default: 0.7 */
+  temperature?: number;
+  /** Maximum tokens in the reply. Default: 1000 */
+  maxTokens?: number;
+}
+```
+
+#### Logger Interface
+
+```typescript
+interface Logger {
+  error(message?: any, ...optional: any[]): void;
+  info?(message?: any, ...optional: any[]): void;
+  warn?(message?: any, ...optional: any[]): void;
+  debug?(message?: any, ...optional: any[]): void;
+}
 ```
 
 #### Methods
@@ -190,31 +231,32 @@ const safe = safeContent(null); // ""
 ```typescript
 import { Agent } from "obru-ai";
 
-// Using OpenAI (default)
 const agent = new Agent({
   basePrompt: "You are a helpful AI assistant.",
   model: "gpt-4",
-  apiKey: process.env.OPENAI_API_KEY,
-  temperature: 0.5, // Controls randomness (0‑1)
-  maxTokens: 2000,  // Maximum response length
-  tools: [...],
-  workflowSteps: [...],
-});
-
-// Using OpenRouter
-const routerAgent = new Agent({
-  basePrompt: "You are a helpful AI assistant.",
-  model: "anthropic/claude-2", // OpenRouter model path
-  apiKey: process.env.OPENROUTER_API_KEY,
+  apiKey: process.env.OPENAI_API_KEY!,
   temperature: 0.5,
   maxTokens: 2000,
-  provider: "openrouter", // Specify OpenRouter as the provider
-  apiBaseUrl: "https://openrouter.ai/api/v1", // Optional: override the default URL
-  tools: [...], // Tool/function calling is supported on OpenRouter!
+  logger: console, // swap for winston/pino as needed
+  hooks: {
+    beforePrompt: (msgs) => {
+      console.debug("Sending messages:", msgs);
+    },
+    afterResponse: (resp) => {
+      console.debug("Model responded with:", resp.content);
+    },
+  },
+  tools: [
+    /* ... */
+  ],
+  workflowSteps: [
+    /* ... */
+  ],
 });
 ```
 
-OpenRouter supports tool/function calling (see [OpenRouter Tool Calling Docs](https://openrouter.ai/docs/features/tool-calling)). You can use the same tools array as with OpenAI.
+> **Note:** OpenRouter also supports tool/function calling. Just set  
+> `provider: "openrouter"`, `apiBaseUrl`, and use the same tools array.
 
 ## Development
 
@@ -238,4 +280,4 @@ npm run lint
 
 ## License
 
-MIT
+`MIT`

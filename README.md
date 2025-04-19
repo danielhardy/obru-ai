@@ -1,4 +1,3 @@
-````markdown
 # obru‑ai
 
 A TypeScript library for creating AI agents with custom tools and workflows. This toolkit makes it easy to build AI‑powered applications that can execute tasks, follow workflows, and integrate with external systems.
@@ -19,7 +18,6 @@ A TypeScript library for creating AI agents with custom tools and workflows. Thi
 ```bash
 npm install github:danielhardy/obru-ai
 ```
-````
 
 ## Quick Start
 

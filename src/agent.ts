@@ -5,6 +5,8 @@ import {
   ModelResponse,
   ParsedToolCall,
   AssistantToolCall,
+  Logger,
+  PromptHooks,
 } from "./types";
 import { ModelService } from "./model-service";
 import { PromptManager } from "./prompt-manager";
@@ -19,25 +21,33 @@ export class Agent {
   private promptManager: PromptManager;
   private toolManager: ToolManager;
   private workflowManager: WorkflowManager;
+  private logger: Logger;
+  private hooks: PromptHooks;
 
   constructor(config: AgentConfig) {
     this.config = config;
 
+    // Set up injectable logger and hooks
+    this.logger = config.logger ?? console;
+    this.hooks = config.hooks ?? {};
+
+    // Initialize model service
     this.modelService = new ModelService({
       apiKey: config.apiKey,
       model: config.model,
-      temperature: config.temperature || 0.7,
-      maxTokens: config.maxTokens || 1000,
+      temperature: config.temperature ?? 0.7,
+      maxTokens: config.maxTokens ?? 1000,
     });
 
+    // Initialize managers
     this.promptManager = new PromptManager(config.basePrompt);
-    this.toolManager = new ToolManager(config.tools || []);
-    this.workflowManager = new WorkflowManager(config.workflowSteps || []);
+    this.toolManager = new ToolManager(config.tools ?? []);
+    this.workflowManager = new WorkflowManager(config.workflowSteps ?? []);
 
     // Update model service with tool definitions
     this.updateModelServiceTools();
 
-    // Add system message
+    // Add initial system message
     this.messages.push({
       role: "system",
       content: this.promptManager.getSystemPrompt(),
@@ -45,8 +55,8 @@ export class Agent {
   }
 
   private updateModelServiceTools(): void {
-    const toolDefinitions = this.toolManager.getToolDefinitionsForAPI();
-    this.modelService.setTools(toolDefinitions);
+    const defs = this.toolManager.getToolDefinitionsForAPI();
+    this.modelService.setTools(defs);
   }
 
   public registerTool(tool: any): void {
@@ -62,30 +72,39 @@ export class Agent {
     // Add user message
     this.messages.push({ role: "user", content: safeContent(input) });
 
-    // Get response from LLM
-    const response = await this.modelService.generateResponse(this.messages);
+    // Hook before sending
+    this.hooks.beforePrompt?.(this.messages);
 
-    // If the response contains parsed tool calls, execute them
+    // Call LLM
+    const response: ModelResponse = await this.modelService.generateResponse(
+      this.messages
+    );
+
+    // Hook after receiving
+    this.hooks.afterResponse?.(response);
+
+    // If tool calls are present, handle them
     if (response.parsedToolCalls && response.parsedToolCalls.length > 0) {
-      // Pass both raw (for history) and parsed (for execution) tool calls
       await this.handleToolCalls(
-        response.rawToolCalls || [],
+        response.rawToolCalls ?? [],
         response.parsedToolCalls
       );
 
-      // Get follow-up response after tool execution
-      const followUpResponse = await this.modelService.generateResponse(
+      // Follow-up response
+      const followUp: ModelResponse = await this.modelService.generateResponse(
         this.messages
       );
+      this.hooks.afterResponse?.(followUp);
+
       this.messages.push({
         role: "assistant",
-        content: safeContent(followUpResponse.content),
+        content: safeContent(followUp.content),
       });
 
-      return safeContent(followUpResponse.content);
+      return safeContent(followUp.content);
     }
 
-    // Add assistant response to messages
+    // Normal assistant response
     this.messages.push({
       role: "assistant",
       content: safeContent(response.content),
@@ -97,30 +116,29 @@ export class Agent {
     rawToolCalls: AssistantToolCall[],
     parsedToolCalls: ParsedToolCall[]
   ): Promise<void> {
-    // Add the assistant message containing the raw tool calls to history
+    // Record the raw tool call message
     this.messages.push({
       role: "assistant",
-      content: null, // per OpenAI spec when tool_calls are present
+      content: null,
       tool_calls: rawToolCalls,
     });
 
-    // Execute all parsed tool calls **in parallel**
+    // Execute tools in parallel
     await Promise.all(
       parsedToolCalls.map(async (toolCall) => {
         try {
-          const toolResponse = await this.toolManager.executeTool(
+          const res = await this.toolManager.executeTool(
             toolCall.name,
             toolCall.arguments
           );
-
           this.messages.push({
             role: "tool",
             tool_call_id: toolCall.id,
             name: toolCall.name,
-            content: safeContent(toolResponse),
+            content: safeContent(res),
           });
         } catch (error) {
-          console.error(`Error executing tool ${toolCall.name}:`, error);
+          this.logger.error(`Error executing tool ${toolCall.name}:`, error);
           this.messages.push({
             role: "tool",
             tool_call_id: toolCall.id,
@@ -138,11 +156,7 @@ export class Agent {
     workflowName: string,
     input: string
   ): Promise<string> {
-    return await this.workflowManager.executeWorkflow(
-      this,
-      workflowName,
-      input
-    );
+    return this.workflowManager.executeWorkflow(this, workflowName, input);
   }
 
   public getMessages(): Message[] {
@@ -150,15 +164,13 @@ export class Agent {
   }
 
   public clearConversation(): void {
-    // Keep the system message only
+    // Keep only the system message
     this.messages = [this.messages[0]];
   }
 
   public updateBasePrompt(newPrompt: string): void {
     this.promptManager.updateBasePrompt(newPrompt);
-
-    // Update the system message
-    if (this.messages.length > 0 && this.messages[0].role === "system") {
+    if (this.messages.length && this.messages[0].role === "system") {
       this.messages[0].content = this.promptManager.getSystemPrompt();
     }
   }

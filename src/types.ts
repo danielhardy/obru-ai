@@ -1,12 +1,32 @@
 // src/types.ts
+
+/** A minimal logger interface—any logger (console, Winston, Pino…) that implements this will work */
+export interface Logger {
+  error(message?: any, ...optionalParams: any[]): void;
+  warn?(message?: any, ...optionalParams: any[]): void;
+  info?(message?: any, ...optionalParams: any[]): void;
+  debug?(message?: any, ...optionalParams: any[]): void;
+}
+
+/** Hooks called before sending prompts or after receiving a response */
+export interface PromptHooks {
+  /** Inspect or mutate messages just before the LLM call */
+  beforePrompt?: (messages: Message[]) => void;
+  /** Inspect the raw LLM response (including tool calls) */
+  afterResponse?: (response: ModelResponse) => void;
+}
+
 export interface AgentConfig {
-  basePrompt: string;
-  model: string;
   apiKey: string;
-  temperature?: number;
-  maxTokens?: number;
+  model: string;
+  basePrompt: string;
   tools?: Tool[];
   workflowSteps?: WorkflowStep[];
+  // ← inject optional logger + hooks
+  logger?: Logger;
+  hooks?: PromptHooks;
+  temperature?: number;
+  maxTokens?: number;
 }
 
 // Interface for the tool_calls array within an assistant message (as received from API)

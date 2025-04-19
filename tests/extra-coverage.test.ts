@@ -6,6 +6,10 @@ import { Agent } from "../src/agent";
 import { ToolManager } from "../src/tool-manager";
 import type { WorkflowStep, Tool } from "../src/types";
 
+beforeAll(() => {
+  jest.spyOn(console, "error").mockImplementation(() => {});
+});
+
 describe("safeContent utility", () => {
   it("returns empty string for null or undefined", () => {
     expect(safeContent(null)).toBe("");

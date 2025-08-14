@@ -7,12 +7,14 @@ import {
   AssistantToolCall,
   Logger,
   PromptHooks,
-} from "./types";
-import { ModelService } from "./model-service";
-import { PromptManager } from "./prompt-manager";
-import { ToolManager } from "./tool-manager";
-import { WorkflowManager } from "./workflow-manager";
-import { safeContent } from "./utils";
+  Tool,
+  WorkflowStep,
+} from "./types.ts";
+import { ModelService } from "./model-service.ts";
+import { PromptManager } from "./prompt-manager.ts";
+import { ToolManager } from "./tool-manager.ts";
+import { WorkflowManager } from "./workflow-manager.ts";
+import { safeContent } from "./utils.ts";
 
 export class Agent {
   private config: AgentConfig;
@@ -59,12 +61,12 @@ export class Agent {
     this.modelService.setTools(defs);
   }
 
-  public registerTool(tool: any): void {
+  public registerTool(tool: Tool): void {
     this.toolManager.registerTool(tool);
     this.updateModelServiceTools();
   }
 
-  public registerWorkflowStep(step: any): void {
+  public registerWorkflowStep(step: WorkflowStep): void {
     this.workflowManager.registerWorkflowStep(step);
   }
 
@@ -152,10 +154,7 @@ export class Agent {
     );
   }
 
-  public async executeWorkflow(
-    workflowName: string,
-    input: string
-  ): Promise<string> {
+  public executeWorkflow(workflowName: string, input: string): Promise<string> {
     return this.workflowManager.executeWorkflow(this, workflowName, input);
   }
 

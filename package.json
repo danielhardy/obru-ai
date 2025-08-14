@@ -3,11 +3,24 @@
   "version": "0.1.3",
   "description": "TypeScript toolkit for creating AI agents with custom tools and workflows",
   "main": "dist/index.js",
+  "module": "dist/index.js",
   "types": "dist/index.d.ts",
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
   "scripts": {
     "build": "tsc",
     "test": "jest",
+    "test:deno": "deno test --allow-net --allow-env",
     "lint": "eslint src/**/*.ts",
+    "lint:deno": "deno lint src/",
+    "fmt:deno": "deno fmt src/",
+    "check:deno": "deno check src/index.ts",
     "prepare": "npm run build"
   },
   "keywords": [
@@ -16,7 +29,9 @@
     "openai",
     "llm",
     "tools",
-    "workflow"
+    "workflow",
+    "deno",
+    "typescript"
   ],
   "author": "Daniel Hardy",
   "license": "MIT",
@@ -32,10 +47,21 @@
   },
   "files": [
     "dist",
+    "src",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "deno.json",
+    "jsr.json"
   ],
-  "dependencies": {
-    "nodemon": "^3.1.9"
-  }
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/danielhardy/obru-ai.git"
+  },
+  "bugs": {
+    "url": "https://github.com/danielhardy/obru-ai/issues"
+  },
+  "homepage": "https://github.com/danielhardy/obru-ai#readme"
 }

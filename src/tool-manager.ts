@@ -1,5 +1,5 @@
 // src/tool-manager.ts
-import { Tool } from "./types";
+import { Tool, APITool } from "./types.ts";
 
 export class ToolManager {
   private tools: Map<string, Tool> = new Map();
@@ -26,7 +26,7 @@ export class ToolManager {
 
   public async executeTool(
     toolName: string,
-    args: Record<string, any>
+    args: Record<string, unknown>
   ): Promise<string> {
     const tool = this.getTool(toolName);
 
@@ -44,7 +44,7 @@ export class ToolManager {
     }
   }
 
-  public getToolDefinitionsForAPI(): any[] {
+  public getToolDefinitionsForAPI(): APITool[] {
     return Array.from(this.tools.values()).map((tool) => ({
       type: "function",
       function: {

@@ -10,18 +10,31 @@ A TypeScript library for creating AI agents with custom tools and workflows. Thi
 - 🔌 **Express.js Integration**: Ready to use with web applications
 - 📋 **Lifecycle Hooks**: Inspect or mutate prompts & responses without forking
 - 🪵 **Injectable Logger**: Plug in Winston, Pino, or a silent no‑op logger
+- 🦕 **Deno Compatible**: Full support for Deno runtime with JSR registry publishing
 
 ## Installation
 
-> **Prerequisite**: **Node 18 or later**. obru‑ai relies on the built‑in `fetch`; no external HTTP client (e.g. Axios) is required.
+### Node.js
+
+> **Prerequisite**: **Node 18 or later**. obru‑ai relies on the built‑in `fetch`; no external HTTP client (e.g. Axios) is required.
 
 ```bash
 npm install github:danielhardy/obru-ai
 ```
 
+### Deno
+
+```bash
+# From JSR (recommended)
+deno add @obru/ai
+
+# Or import directly
+import { Agent } from "https://deno.land/x/obru_ai/src/index.ts";
+```
+
 ## Quick Start
 
-### Basic Usage
+### Node.js Usage
 
 ```typescript
 import { Agent } from "obru-ai";
@@ -35,6 +48,35 @@ const agent = new Agent({
 
 const response = await agent.processInput("Hello, can you help me?");
 console.log(response);
+```
+
+### Deno Usage
+
+```typescript
+import { Agent } from "@obru/ai";
+
+// Create an agent (using Deno.env for environment variables)
+const agent = new Agent({
+  basePrompt: "You are a helpful AI assistant running in Deno.",
+  model: "gpt-4",
+  apiKey: Deno.env.get("OPENAI_API_KEY")!,
+  tools: [
+    {
+      name: "getDenoVersion",
+      description: "Gets the current Deno version",
+      parameters: { type: "object", properties: {} },
+      execute: async () => Deno.version.deno,
+    },
+  ],
+});
+
+const response = await agent.processInput("What version of Deno am I running?");
+console.log(response);
+```
+
+Run with:
+```bash
+deno run --allow-net --allow-env your-script.ts
 ```
 
 > Need structured logging or metrics? Pass `logger` and `hooks` in the config—see _Advanced Configuration_.

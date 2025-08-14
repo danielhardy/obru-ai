@@ -1,0 +1,67 @@
+name: Deno CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        deno-version: [1.x, 2.x]
+
+    steps:
+    - name: Setup repo
+      uses: actions/checkout@v4
+
+    - name: Setup Deno
+      uses: denoland/setup-deno@v1
+      with:
+        deno-version: ${{ matrix.deno-version }}
+
+    - name: Verify Deno installation
+      run: deno --version
+
+    - name: Check TypeScript
+      run: deno check src/index.ts
+
+    - name: Run linter
+      run: deno lint src/
+
+    - name: Check formatting
+      run: deno fmt --check src/
+
+    - name: Run tests
+      run: deno test --allow-net --allow-env tests/deno.test.ts
+
+    - name: Test example
+      run: |
+        export OPENAI_API_KEY="test-key"
+        deno check example/deno-example.ts
+      env:
+        OPENAI_API_KEY: test-key
+
+  publish-jsr:
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+    - name: Setup repo
+      uses: actions/checkout@v4
+
+    - name: Setup Deno
+      uses: denoland/setup-deno@v1
+      with:
+        deno-version: 2.x
+
+    - name: Publish to JSR
+      run: deno publish --allow-dirty

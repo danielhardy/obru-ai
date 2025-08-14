@@ -1,0 +1,42 @@
+{
+  "name": "@obru/ai",
+  "version": "0.1.3",
+  "description": "TypeScript toolkit for creating AI agents with custom tools and workflows",
+  "license": "MIT",
+  "author": "Daniel Hardy",
+  "homepage": "https://github.com/danielhardy/obru-ai",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/danielhardy/obru-ai.git"
+  },
+  "bugs": {
+    "url": "https://github.com/danielhardy/obru-ai/issues"
+  },
+  "keywords": [
+    "ai",
+    "agent",
+    "openai",
+    "llm",
+    "tools",
+    "workflow",
+    "deno",
+    "typescript"
+  ],
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "publish": {
+    "exclude": [
+      "node_modules",
+      "dist",
+      "tests",
+      "example",
+      ".git",
+      ".gitignore",
+      "jest.config.ts",
+      "package.json",
+      "package-lock.json",
+      "tsconfig.json"
+    ]
+  }
+}

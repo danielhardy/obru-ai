@@ -1,6 +1,6 @@
 // src/workflow-manager.ts
-import { WorkflowStep } from "./types";
-import { Agent } from "./agent";
+import { WorkflowStep } from "./types.ts";
+import { Agent } from "./agent.ts";
 
 export class WorkflowManager {
   private workflowSteps: Map<string, WorkflowStep> = new Map();

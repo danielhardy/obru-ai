@@ -5,11 +5,13 @@ import {
   ModelServiceConfig,
   ParsedToolCall,
   AssistantToolCall,
-} from "./types";
+  Tool,
+  APITool,
+} from "./types.ts";
 
 export class ModelService {
   private config: ModelServiceConfig;
-  private tools: any[] = [];
+  private tools: APITool[] = [];
   private readonly baseUrl: string;
 
   constructor(config: ModelServiceConfig) {
@@ -21,13 +23,20 @@ export class ModelService {
         : "https://api.openai.com/v1");
   }
 
-  public setTools(tools: any[]): void {
+  public setTools(tools: APITool[]): void {
     this.tools = tools;
   }
 
   public async generateResponse(messages: Message[]): Promise<ModelResponse> {
     try {
-      const requestBody: any = {
+      const requestBody: {
+        model: string;
+        messages: Message[];
+        temperature: number;
+        max_tokens: number;
+        tools?: APITool[];
+        tool_choice?: string;
+      } = {
         model: this.config.model,
         messages,
         temperature: this.config.temperature,
@@ -101,7 +110,7 @@ export class ModelService {
     }
   }
 
-  public formatToolsForAPI(tools: Record<string, any>[]): any[] {
+  public formatToolsForAPI(tools: Tool[]): APITool[] {
     return tools.map((tool) => ({
       type: "function",
       function: {

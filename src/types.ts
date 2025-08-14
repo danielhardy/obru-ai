@@ -2,10 +2,10 @@
 
 /** A minimal logger interface—any logger (console, Winston, Pino…) that implements this will work */
 export interface Logger {
-  error(message?: any, ...optionalParams: any[]): void;
-  warn?(message?: any, ...optionalParams: any[]): void;
-  info?(message?: any, ...optionalParams: any[]): void;
-  debug?(message?: any, ...optionalParams: any[]): void;
+  error(message?: unknown, ...optionalParams: unknown[]): void;
+  warn?(message?: unknown, ...optionalParams: unknown[]): void;
+  info?(message?: unknown, ...optionalParams: unknown[]): void;
+  debug?(message?: unknown, ...optionalParams: unknown[]): void;
 }
 
 /** Hooks called before sending prompts or after receiving a response */
@@ -35,7 +35,7 @@ export interface AssistantToolCall {
   type: "function";
   function: {
     name: string;
-    arguments: string | Record<string, any>; // Arguments from API can arrive as either a string or a parsed object
+    arguments: string | Record<string, unknown>; // Arguments from API can arrive as either a string or a parsed object
   };
 }
 
@@ -52,10 +52,10 @@ export interface Tool {
   description: string;
   parameters: {
     type: "object";
-    properties: Record<string, any>;
+    properties: Record<string, unknown>;
     required?: string[];
   };
-  execute: (args: Record<string, any>) => Promise<string>;
+  execute: (args: Record<string, unknown>) => Promise<string>;
 }
 
 export interface WorkflowStep {
@@ -68,7 +68,7 @@ export interface WorkflowStep {
 export interface ParsedToolCall {
   id: string; // Added: The ID of the tool call
   name: string;
-  arguments: Record<string, any>; // Parsed arguments
+  arguments: Record<string, unknown>; // Parsed arguments
 }
 
 export interface ModelResponse {
@@ -86,5 +86,14 @@ export interface ModelServiceConfig {
   apiBaseUrl?: string;
 }
 
+export interface APITool {
+  type: "function";
+  function: {
+    name: string;
+    description: string;
+    parameters: Record<string, unknown>;
+  };
+}
+
 // Forward reference for TypeScript
-import { Agent } from "./agent";
+import { Agent } from "./agent.ts";

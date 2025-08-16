@@ -33,14 +33,14 @@ export class ModelService {
         model: string;
         messages: Message[];
         temperature: number;
-        max_tokens: number;
+        // max_completion_tokens: number;
         tools?: APITool[];
         tool_choice?: string;
       } = {
         model: this.config.model,
         messages,
         temperature: this.config.temperature,
-        max_tokens: this.config.maxTokens,
+        // max_completion_tokens: this.config.maxTokens,
       };
 
       // Include tools if any are registered (now for both OpenAI and OpenRouter)

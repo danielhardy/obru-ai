@@ -16,11 +16,7 @@ export class ModelService {
 
   constructor(config: ModelServiceConfig) {
     this.config = config;
-    this.baseUrl =
-      config.apiBaseUrl ||
-      (config.provider === "openrouter"
-        ? "https://openrouter.ai/api/v1"
-        : "https://api.openai.com/v1");
+    this.baseUrl = config.baseUrl || "https://api.openai.com/v1";
   }
 
   public setTools(tools: APITool[]): void {
@@ -43,7 +39,7 @@ export class ModelService {
         // max_completion_tokens: this.config.maxTokens,
       };
 
-      // Include tools if any are registered (now for both OpenAI and OpenRouter)
+      // Include tools if any are registered
       if (this.tools.length > 0) {
         requestBody.tools = this.tools;
         requestBody.tool_choice = "auto";
@@ -51,15 +47,8 @@ export class ModelService {
 
       const headers: Record<string, string> = {
         "Content-Type": "application/json",
+        "Authorization": `Bearer ${this.config.apiKey}`,
       };
-
-      // Set appropriate authorization header based on provider
-      if (this.config.provider === "openrouter") {
-        headers["HTTP-Referer"] = "https://github.com/danielhardy/obru-ai"; // Replace with your actual site
-        headers["Authorization"] = `Bearer ${this.config.apiKey}`;
-      } else {
-        headers["Authorization"] = `Bearer ${this.config.apiKey}`;
-      }
 
       const response = await fetch(`${this.baseUrl}/chat/completions`, {
         method: "POST",
@@ -77,7 +66,7 @@ export class ModelService {
       const data = await response.json();
 
       const content = data.choices[0].message.content || "";
-      // Parse tool calls for both OpenAI and OpenRouter, capturing the ID
+      // Parse tool calls, capturing the ID
       const rawToolCalls: AssistantToolCall[] | undefined =
         data.choices[0].message.tool_calls;
       const parsedToolCalls: ParsedToolCall[] =
@@ -98,10 +87,7 @@ export class ModelService {
         parsedToolCalls: parsedToolCalls,
       };
     } catch (error) {
-      console.error(
-        `Error calling ${this.config.provider || "OpenAI"} API:`,
-        error
-      );
+      console.error("Error calling API:", error);
       throw new Error(
         `Failed to generate response from the model: ${
           (error as Error).message

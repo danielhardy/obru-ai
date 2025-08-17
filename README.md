@@ -205,6 +205,8 @@ interface AgentConfig {
   temperature?: number;
   /** Maximum tokens in the reply. Default: 1000 */
   maxTokens?: number;
+  /** Custom API base URL. Default: "https://api.openai.com/v1" */
+  baseUrl?: string;
 }
 ```
 
@@ -295,8 +297,39 @@ const agent = new Agent({
 });
 ```
 
-> **Note:** OpenRouter also supports tool/function calling. Just set  
-> `provider: "openrouter"`, `apiBaseUrl`, and use the same tools array.
+## Using Custom API Endpoints
+
+You can configure obru-ai to work with any OpenAI-compatible API by setting the `baseUrl` option:
+
+```typescript
+import { Agent } from "obru-ai";
+
+// Using OpenRouter
+const openRouterAgent = new Agent({
+  basePrompt: "You are a helpful AI assistant.",
+  model: "anthropic/claude-3-haiku",
+  apiKey: process.env.OPENROUTER_API_KEY!,
+  baseUrl: "https://openrouter.ai/api/v1",
+});
+
+// Using Azure OpenAI
+const azureAgent = new Agent({
+  basePrompt: "You are a helpful AI assistant.",
+  model: "gpt-4",
+  apiKey: process.env.AZURE_API_KEY!,
+  baseUrl: "https://your-resource.openai.azure.com/openai/deployments/your-deployment/v1",
+});
+
+// Using local LM Studio
+const localAgent = new Agent({
+  basePrompt: "You are a helpful AI assistant.",
+  model: "local-model",
+  apiKey: "not-needed", // LM Studio doesn't require API key
+  baseUrl: "http://localhost:1234/v1",
+});
+```
+
+> **Note:** Any API that follows the OpenAI chat completions format will work with obru-ai.
 
 ## Development
 

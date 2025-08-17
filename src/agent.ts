@@ -39,6 +39,7 @@ export class Agent {
       model: config.model,
       temperature: config.temperature ?? 0.7,
       maxTokens: config.maxTokens ?? 1000,
+      baseUrl: config.baseUrl,
     });
 
     // Initialize managers

@@ -27,6 +27,7 @@ export interface AgentConfig {
   hooks?: PromptHooks;
   temperature?: number;
   maxTokens?: number;
+  baseUrl?: string;
 }
 
 // Interface for the tool_calls array within an assistant message (as received from API)
@@ -82,8 +83,7 @@ export interface ModelServiceConfig {
   model: string;
   temperature: number;
   maxTokens: number;
-  provider?: "openai" | "openrouter";
-  apiBaseUrl?: string;
+  baseUrl?: string;
 }
 
 export interface APITool {

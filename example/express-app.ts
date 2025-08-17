@@ -94,7 +94,7 @@ const routerAgent = new Agent({
     "You are a helpful AI assistant specialized in customer support for an e-commerce store.",
   model: "anthropic/claude-2",
   apiKey: process.env.OPENROUTER_API_KEY!,
-  provider: "openrouter",
+  baseUrl: "https://openrouter.ai/api/v1",
   temperature: 0.7,
   maxTokens: 1000,
 });
